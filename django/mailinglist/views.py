@@ -5,9 +5,17 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import (
     CreateView, DeleteView, DetailView, ListView,)
 
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+
 from mailinglist.forms import (MailingListForm, MessageForm, SubscriberForm,)
 from mailinglist.mixins import UserCanUseMailingList
 from mailinglist.models import (MailingList, Subscriber, Message,)
+from mailinglist.permissions import CanUseMailingList
+from mailinglist.serializers import (
+    MailingListSerializer, SubscriberSerializer,
+    ReadOnlyEmailSubscriberSerializer,
+)
 
 
 # http://localhost:8000/mailinglist
@@ -206,3 +214,93 @@ class MessageDetailView(LoginRequiredMixin,
         <uuid:pk> - int - id for a Message instance.
     '''
     model = Message
+
+
+##############################################################################
+##############################################################################
+#
+# API VIEWS LISTED BELOW
+#
+##############################################################################
+##############################################################################
+
+class MailingListCreateListView(generics.ListCreateAPIView):
+    '''
+    View allows to list and create MailingLists instance via API. 
+    '''
+    permission_classes = (IsAuthenticated, CanUseMailingList)
+    serializer_class = MailingListSerializer
+
+    def get_queryset(self):
+        return self.request.user.mailinglist_set.all()
+
+    def get_serializer(self, *args, **kwargs):
+        # Method overrides the owner received as an input from the request
+        # with the logged in user and ensures that a user can't manipulate a
+        # MailingList already created by another user.
+        if kwargs.get('data', None):
+            data = kwargs.get('data', None)
+            owner = {
+                'owner': self.request.user.id,
+            }
+            data.update(owner)
+        return super().get_serializer(*args, **kwargs)
+
+
+class MailingListRetrieveUpdateDestroyView(
+    generics.RetrieveUpdateDestroyAPIView
+):
+    '''
+    View allows to perform CRUD operations on a MailingList instance via API.
+
+    Args:
+        <pk> - uuid for MailingList
+    '''
+    permission_classes = (IsAuthenticated, CanUseMailingList)
+    serializer_class = MailingListSerializer
+    queryset = MailingList.objects.all()
+
+
+class SubscriberListCreateView(generics.ListCreateAPIView):
+    '''
+    View allows to list and create Subscriber instances via API.
+
+    Args:
+        <uuid:mailing_list_pk> - uuid for a related MailingList
+    '''
+    permission_classes = (IsAuthenticated, CanUseMailingList)
+    serializer_class = SubscriberSerializer
+
+    def get_queryset(self):
+        # method checks whether MailingList model instance indentified in the
+        # URL before returning queryset of all related Subscriber instances.
+        mailing_list_pk = self.kwargs['mailing_list_pk']
+        mailing_list = get_object_or_404(MailingList, id=mailing_list_pk)
+        return mailing_list.subscriber_set.all()
+
+    def get_serializer(self, *args, **kwargs):
+        # Method provides mailing_list field required by a serializer
+        if kwargs.get('data'):
+            data = kwargs.get('data')
+            mailing_list = {
+                'mailing_list': reverse(
+                    'mailinglist:api-mailing-list-detail',
+                    kwargs={'pk': self.kwargs['mailing_list_pk']}
+                )
+            }
+            data.update(mailing_list)
+        return super().get_serializer(*args, **kwargs)
+
+
+class SubscriberRetrieveUpdateDestroyView(
+    generics.RetrieveUpdateDestroyAPIView
+):
+    '''
+    View allows to perform CRUD operations on a Subscriber instance via API.
+
+    Args:
+        <uuid:pk> - uuid for MailingList
+    '''
+    permission_classes = (IsAuthenticated, CanUseMailingList)
+    serializer_class = ReadOnlyEmailSubscriberSerializer
+    queryset = Subscriber.objects.all()

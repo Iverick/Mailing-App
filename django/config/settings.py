@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'markdownify',
     'django_celery_results',
+    'rest_framework',
     # djang built-in apps
     'django.contrib.admin',
     'django.contrib.auth',
@@ -112,6 +113,23 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+
+# Django Rest Framework settings
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '60/minute',
+        'anon': '30/minute',
+    },
+}
 
 
 # Django Crispy Forms will use Bootstrap 4 to make pretty saucy forms

@@ -53,4 +53,28 @@ urlpatterns = [
         views.MessageDetailView.as_view(),
         name='view_message',
     ),
+
+
+
+    # API urls follow here
+    path(
+        'api/v1/mailing-list',
+        views.MailingListCreateListView.as_view(),
+        name='api-mailing-list-list'
+    ),
+    path(
+        'api/v1/mailing-list/<uuid:pk>',
+        views.MailingListRetrieveUpdateDestroyView.as_view(),
+        name='api-mailing-list-detail'
+    ),
+    path(
+        'api/v1/mailing-list/<uuid:mailing_list_pk>/subscribers',
+        views.SubscriberListCreateView.as_view(),
+        name='api-subscriber-list'
+    ),
+    path(
+        'api/v1/subscriber/<uuid:pk>',
+        views.SubscriberRetrieveUpdateDestroyView.as_view(),
+        name='api-subscriber-detail'
+    ),
 ]

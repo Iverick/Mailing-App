@@ -78,7 +78,7 @@ class Subscriber(models.Model):
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         # Calls send_confirmation_email method if object has been added to
-        # a database
+        # a database and isn't confirmed yet.
         is_new = self._state.adding or force_insert
         super().save(
             force_insert=force_insert,
@@ -86,7 +86,7 @@ class Subscriber(models.Model):
             using=using,
             update_fields=update_fields,
         )
-        if is_new:
+        if is_new and not self.confirmed:
             self.send_confirmation_email()
 
     def send_confirmation_email(self):
